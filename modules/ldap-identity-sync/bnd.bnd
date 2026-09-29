@@ -1,0 +1,3 @@
+Bundle-Name: ldap-identity-sync
+Bundle-SymbolicName: com.client.ldap.identity.sync
+Bundle-Version: 1.0.0
