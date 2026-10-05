@@ -42,9 +42,15 @@ import org.osgi.service.component.annotations.Component;
  * ese texto en {@link AdObjectGuidThreadLocal} para que
  * {@link LDAPUserIdentitySyncWrapper} lo recoja al interceptar
  * {@code addUser}/{@code updateUser} para esa misma entrada -- ver el javadoc
- * de {@link AdObjectGuidThreadLocal} para el porque de este mecanismo (no se
- * puede usar {@code serviceContext.getUuid()} con "Import User Sync Strategy
- * = Auth Type").</p>
+ * de {@link AdObjectGuidThreadLocal} para el porque de este mecanismo.</p>
+ *
+ * <p><b>Precondicion.</b> El import LDAP solo pide a AD los atributos que
+ * estan mapeados en la configuracion del servidor LDAP (se ha comprobado en
+ * {@code DefaultPortalLDAP.getUserAttributes}: recoge los valores de los
+ * mapeos de usuario, contacto y campos personalizados). Si {@code objectGUID}
+ * no esta mapeado en ningun sitio, este componente no lo vera nunca y el
+ * mecanismo completo queda inerte, sin ningun error. Ver README, "Mapeos y
+ * configuracion necesarios".</p>
  *
  * <p>IMPORTANTE -- pendiente de validar contra vuestra build 2025.Q1 (ver
  * README, "Supuestos que hay que validar"):</p>

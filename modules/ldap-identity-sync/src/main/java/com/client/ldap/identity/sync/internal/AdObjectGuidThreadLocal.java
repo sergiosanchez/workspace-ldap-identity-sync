@@ -6,29 +6,25 @@ package com.client.ldap.identity.sync.internal;
  * LDAP en curso, para que {@link LDAPUserIdentitySyncWrapper} lo pueda leer al
  * interceptar {@code addUser}/{@code updateUser} para ese mismo usuario.
  *
- * <p><b>Por que hace falta esto y no basta con {@code serviceContext.getUuid()}.</b>
- * La primera version de este componente asumia que el valor mapeado como
- * "UUID" en LDAP User Mapping llegaba automaticamente a
- * {@code serviceContext.getUuid()} en cualquier ciclo de import. Eso es falso:
- * el import LDAP solo traduce ese mapeo a {@code serviceContext.setUuid(...)}
- * cuando "Import User Sync Strategy" esta puesto a {@code UUID} -- con la
- * estrategia {@code Auth Type} (la que usa este componente a proposito, para
- * no depender de una migracion previa de todos los usuarios existentes),
- * {@code serviceContext.getUuid()} esta siempre a {@code null} durante el
- * import LDAP, pase lo que pase con el mapeo "UUID". Confirmado contra un
- * comentario real de un ingeniero de Liferay en LPS-67628 / LPSA-39880: "It is
- * obligatory to map the uuid in order to import those Users from LDAP while
- * using the 'ldap.import.user.sync.strategy=uuid' property" -- es decir, ese
- * mapeo solo importa bajo esa estrategia.</p>
+ * <p><b>Por que un ThreadLocal y no {@code serviceContext.getUuid()}.</b>
+ * El import LDAP copia a {@code serviceContext.setUuid(...)} el atributo
+ * mapeado en el campo "UUID" de User Mapping (se ha comprobado en
+ * {@code DefaultLDAPToPortalConverter}: lo hace siempre que ese mapeo
+ * exista, sea cual sea el "Import User Sync Strategy"). Se podria, pues, leer
+ * ahi con {@code getUuidWithoutReset()}. Pero ese mismo valor lo usa Liferay en
+ * {@code UserLocalServiceImpl.addUser} y {@code updateUser} para fijar el
+ * {@code uuid_} interno de CADA usuario importado (mediante {@code getUuid()},
+ * que ademas lo borra al leerlo). Mapear "UUID" a {@code objectGUID} para
+ * poder leerlo aqui cambiaria el {@code uuid_} de todos los usuarios ya
+ * existentes en el siguiente import. Para no tener ese efecto lateral, el
+ * atributo se obtiene con un mapeo a un campo personalizado auxiliar (ver
+ * README) y este valor viaja por un {@link ThreadLocal} interno a este
+ * modulo.</p>
  *
- * <p>Como {@link ADObjectGuidAttributesTransformer} SI tiene acceso al
- * {@code objectGUID} crudo (antes de cualquier mapeo, via el propio
- * {@code Attributes} de la entrada LDAP), y se ejecuta en el mismo hilo e
- * inmediatamente antes de que el import LDAP llame a
- * {@code addUser}/{@code updateUser} para esa misma entrada, un
- * {@link ThreadLocal} interno a este modulo es la forma mas simple de pasar
- * ese valor de un componente a otro sin depender de ningun mecanismo nativo
- * de Liferay que no hace lo que su nombre sugiere.</p>
+ * <p>{@link ADObjectGuidAttributesTransformer} tiene acceso al
+ * {@code objectGUID} (en el {@code Attributes} de la entrada LDAP), y se
+ * ejecuta en el mismo hilo e inmediatamente antes de que el import LDAP llame
+ * a {@code addUser}/{@code updateUser} para esa misma entrada.</p>
  *
  * <p>IMPORTANTE -- supuesto pendiente de validar (ver README, "Supuestos que
  * hay que validar"): que el import LDAP procesa cada entrada de principio a
